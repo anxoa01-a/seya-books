@@ -135,6 +135,15 @@ class SeyaBooksApp {
   async loadData() {
     try {
       await getDB();
+
+      // One-time clean wipe of old cached dummy transactions & timesheets
+      if (!localStorage.getItem('seya_dummy_cleared_v4')) {
+        await clearStore('transactions');
+        await clearStore('timesheets');
+        await clearStore('filesVault');
+        localStorage.setItem('seya_dummy_cleared_v4', 'true');
+      }
+
       let txs = await getAllFromStore('transactions');
       let banks = await getAllFromStore('banks');
       let brands = await getAllFromStore('clients'); // store key 'clients' represents brands
@@ -142,24 +151,21 @@ class SeyaBooksApp {
       let timesheets = await getAllFromStore('timesheets');
       let savedSettings = await getAllFromStore('settings');
 
-      if (!txs || txs.length === 0) {
-        for (const t of INITIAL_TRANSACTIONS) await saveToStore('transactions', t);
+      if (!banks || banks.length === 0) {
         for (const b of INITIAL_BANKS) await saveToStore('banks', b);
-        for (const c of INITIAL_CLIENTS) await saveToStore('clients', c);
-        for (const f of INITIAL_VAULT_FILES) await saveToStore('filesVault', f);
-        for (const ts of INITIAL_TIMESHEETS) await saveToStore('timesheets', ts);
-        for (const [k, v] of Object.entries(INITIAL_SETTINGS)) await saveToStore('settings', { key: k, value: v });
-
-        txs = INITIAL_TRANSACTIONS;
         banks = INITIAL_BANKS;
+      }
+
+      if (!brands || brands.length === 0) {
+        for (const c of INITIAL_CLIENTS) await saveToStore('clients', c);
         brands = INITIAL_CLIENTS;
-        files = INITIAL_VAULT_FILES;
-        timesheets = INITIAL_TIMESHEETS;
+      }
+
+      if (!savedSettings || savedSettings.length === 0) {
+        for (const [k, v] of Object.entries(INITIAL_SETTINGS)) await saveToStore('settings', { key: k, value: v });
         this.settings = { ...INITIAL_SETTINGS };
       } else {
-        if (savedSettings && savedSettings.length > 0) {
-          savedSettings.forEach(s => { this.settings[s.key] = s.value; });
-        }
+        savedSettings.forEach(s => { this.settings[s.key] = s.value; });
       }
 
       this.transactions = txs || [];
@@ -172,11 +178,11 @@ class SeyaBooksApp {
       if (this.settings.groqModel) groqService.setModel(this.settings.groqModel);
     } catch (err) {
       console.error('Error loading data:', err);
-      this.transactions = INITIAL_TRANSACTIONS;
+      this.transactions = [];
       this.banks = INITIAL_BANKS;
       this.brands = INITIAL_CLIENTS;
-      this.files = INITIAL_VAULT_FILES;
-      this.timesheets = INITIAL_TIMESHEETS;
+      this.files = [];
+      this.timesheets = [];
     }
   }
 

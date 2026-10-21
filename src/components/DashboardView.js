@@ -190,7 +190,15 @@ export function renderDashboardView({
         </div>
 
         <div>
-          ${recentTx.map(t => {
+          ${recentTx.length === 0 ? `
+            <div style="text-align: center; padding: 48px 20px; color: var(--text-muted);">
+              <div style="width: 44px; height: 44px; border-radius: var(--radius-xs); border: 1px solid var(--border-medium); background: var(--bg-surface); color: var(--text-primary); display: flex; align-items: center; justify-content: center; margin: 0 auto 12px auto;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+              </div>
+              <div style="font-weight: 700; font-size: 14px; color: var(--text-primary); margin-bottom: 4px;">No Transactions Yet</div>
+              <div style="font-size: 12px; max-width: 320px; margin: 0 auto; color: var(--text-secondary);">Your ledger is completely clean. Click the <strong>+</strong> button below or command the AI Copilot to record your first income or expense.</div>
+            </div>
+          ` : recentTx.map(t => {
             const cat = getCategoryById(t.category);
             const isIncome = t.type === 'income';
             return `

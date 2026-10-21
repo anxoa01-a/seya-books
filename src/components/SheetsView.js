@@ -83,7 +83,13 @@ export function renderSheetsView({
                 </tr>
               </thead>
               <tbody>
-                ${transactions.map(t => {
+                ${transactions.length === 0 ? `
+                  <tr>
+                    <td colspan="7" style="text-align: center; padding: 48px 20px; color: var(--text-muted);">
+                      No transactions recorded yet. Click <strong>+</strong> or use the AI Copilot to record your first income or expense.
+                    </td>
+                  </tr>
+                ` : transactions.map(t => {
                   const cat = getCategoryById(t.category);
                   const isInc = t.type === 'income';
                   return `
@@ -363,7 +369,13 @@ export function renderSheetsView({
                 </tr>
               </thead>
               <tbody>
-                ${timesheets.map(ts => `
+                ${timesheets.length === 0 ? `
+                  <tr>
+                    <td colspan="7" style="text-align: center; padding: 48px 20px; color: var(--text-muted);">
+                      No billable work sessions logged yet. Use the Live Timer or paste text notes above to create entries.
+                    </td>
+                  </tr>
+                ` : timesheets.map(ts => `
                   <tr>
                     <td style="font-family: var(--font-mono); font-size: 12px;">${ts.date}</td>
                     <td style="font-weight: 700;">${ts.businessName || ts.clientName}</td>
