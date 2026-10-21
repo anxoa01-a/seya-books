@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0c121e"/>
+      <stop offset="50%" stop-color="#06090f"/>
+      <stop offset="100%" stop-color="#03060a"/>
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="50%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#6366f1"/>
+    </linearGradient>
+    <linearGradient id="glowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.2"/>
+    </linearGradient>
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="16" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background rounded canvas -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)"/>
+  <rect width="510" height="510" x="1" y="1" rx="127" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="2"/>
+
+  <!-- Glowing background aura -->
+  <circle cx="256" cy="256" r="140" fill="url(#glowGrad)" opacity="0.15" filter="url(#softGlow)" />
+
+  <!-- Stylized Geometric Ledger "S" & Pages -->
+  <g transform="translate(106, 96)">
+    <!-- Back Page -->
+    <path d="M 60 40 L 260 40 C 275 40 285 52 285 68 L 285 240 C 285 255 275 265 260 265 L 60 265 C 45 265 35 255 35 240 L 35 68 C 35 52 45 40 60 40 Z" 
+          fill="#131e2e" stroke="rgba(255,255,255,0.06)" stroke-width="3" />
+
+    <!-- Center Glowing Layer -->
+    <path d="M 40 70 L 240 70 C 255 70 265 82 265 98 L 265 270 C 265 285 255 295 240 295 L 40 295 C 25 295 15 285 15 270 L 15 98 C 15 82 25 70 40 70 Z" 
+          fill="#0c1726" stroke="rgba(16, 185, 129, 0.25)" stroke-width="2" />
+
+    <!-- Front Page with S curve / Financial Ascent -->
+    <path d="M 20 100 L 220 100 C 235 100 245 112 245 128 L 245 300 C 245 315 235 325 220 325 L 20 325 C 5 325 -5 315 -5 300 L -5 128 C -5 112 5 100 20 100 Z" 
+          fill="#0f1f33" stroke="url(#accentGrad)" stroke-width="3.5" filter="url(#softGlow)"/>
+
+    <!-- Dynamic S-Curve line for Seya Books -->
+    <path d="M 50 170 C 90 140, 150 140, 190 170 C 230 200, 130 240, 170 270" 
+          fill="none" stroke="url(#accentGrad)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+
+    <!-- Floating Financial Diamond / AI spark -->
+    <polygon points="195,130 205,142 195,154 185,142" fill="#38bdf8" filter="url(#softGlow)"/>
+    <polygon points="65,240 73,250 65,260 57,250" fill="#34d399" filter="url(#softGlow)"/>
+  </g>
+</svg>

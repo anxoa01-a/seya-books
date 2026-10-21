@@ -1,0 +1,18 @@
+{
+  "name": "Seya Books - Self-Employed Financial Suite",
+  "short_name": "Seya Books",
+  "description": "Minimalistic 2026 bookkeeping, German tax calculator (EÜR & § 19 UStG), Groq AI insights, and files vault for self-employed professionals.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0d14",
+  "theme_color": "#0a0d14",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
