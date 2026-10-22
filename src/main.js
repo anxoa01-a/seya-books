@@ -61,6 +61,7 @@ class SeyaBooksApp {
     this.files = [];
     this.timesheets = [];
     this.settings = { ...INITIAL_SETTINGS };
+    this.customCategories = [];
 
     // Modals & Panels
     this.isActionSheetOpen = false;
@@ -174,8 +175,35 @@ class SeyaBooksApp {
       this.files = files || [];
       this.timesheets = timesheets || [];
 
-      if (this.settings.groqApiKey) groqService.setApiKey(this.settings.groqApiKey);
-      if (this.settings.groqModel) groqService.setModel(this.settings.groqModel);
+      // Load custom categories
+      const savedCustomCats = localStorage.getItem('seya_custom_categories');
+      if (savedCustomCats) {
+        try { this.customCategories = JSON.parse(savedCustomCats); } catch (e) {}
+      }
+      if (!Array.isArray(this.customCategories)) this.customCategories = [];
+      this.transactions.forEach(t => {
+        if (t.categoryName && !this.customCategories.includes(t.categoryName)) {
+          this.customCategories.push(t.categoryName);
+        }
+      });
+
+      // Prefer saved key, fall back to INITIAL_SETTINGS default (pre-configured key)
+      const effectiveKey = this.settings.groqApiKey || INITIAL_SETTINGS.groqApiKey;
+      const effectiveModel = this.settings.groqModel || INITIAL_SETTINGS.groqModel;
+      if (effectiveKey) {
+        groqService.setApiKey(effectiveKey);
+        if (!this.settings.groqApiKey) {
+          this.settings.groqApiKey = effectiveKey;
+          await saveToStore('settings', { key: 'groqApiKey', value: effectiveKey });
+        }
+      }
+      if (effectiveModel) {
+        groqService.setModel(effectiveModel);
+        if (!this.settings.groqModel) {
+          this.settings.groqModel = effectiveModel;
+          await saveToStore('settings', { key: 'groqModel', value: effectiveModel });
+        }
+      }
     } catch (err) {
       console.error('Error loading data:', err);
       this.transactions = [];
@@ -313,6 +341,7 @@ class SeyaBooksApp {
           taxReserve: taxAssessment.totalTaxReserve,
           isKleinunternehmer: isKu
         },
+        hasGroqKey: Boolean(this.settings.groqApiKey && this.settings.groqApiKey.trim()),
         isThinking: this.isAiThinking
       })}
 
@@ -347,6 +376,7 @@ class SeyaBooksApp {
         transaction: this.editingTransaction,
         clients: brandsWithEarned,
         banks: this.banks,
+        customCategories: this.customCategories || [],
         isKleinunternehmer: isKu
       })}
 
@@ -555,6 +585,12 @@ class SeyaBooksApp {
   }
 
   downloadCleanTaxCSV() {
+    const sorted = [...this.transactions].sort((a, b) => {
+      const da = a.date ? new Date(a.date).getTime() : 0;
+      const db = b.date ? new Date(b.date).getTime() : 0;
+      return da - db;
+    });
+
     const headers = [
       'Date',
       'Type',
@@ -567,19 +603,20 @@ class SeyaBooksApp {
       'Notes'
     ];
 
-    const rows = this.transactions.map(t => {
+    const rows = sorted.map(t => {
       const cat = getCategoryById(t.category);
       const isInc = t.type === 'income';
       const cleanDesc = (t.description || '').replace(/"/g, '""');
       const cleanName = (t.businessName || t.clientName || '').replace(/"/g, '""');
       const cleanNotes = (t.notes || '').replace(/"/g, '""');
+      const catLabel = t.categoryName || cat.shortName || t.category;
 
       return [
         t.date || '',
         isInc ? 'INCOME' : 'EXPENSE',
         Number(t.amount || 0).toFixed(2),
         `"${cleanName || cleanDesc}"`,
-        `"${cat.shortName} (${cat.code})"`,
+        `"${catLabel} (${cat.code || 'Zeile 48'})"`,
         t.vatRate ?? (this.settings.isKleinunternehmer ? 0 : 19),
         isInc ? 100 : (t.taxDeductiblePercent ?? cat.deductiblePercent ?? 100),
         `"${t.bankName || 'Checking'}"`,
@@ -593,6 +630,82 @@ class SeyaBooksApp {
     const a = document.createElement('a');
     a.href = url;
     a.download = `Seya_Books_Clean_Tax_Statement_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  downloadCleanTaxCsv() {
+    this.downloadCleanTaxCSV();
+  }
+
+  downloadPnlCsv() {
+    const { euerSummary } = this.getCalculations();
+    const totals = euerSummary?.totals || {};
+    const sorted = [...this.transactions].sort((a, b) => {
+      const da = a.date ? new Date(a.date).getTime() : 0;
+      const db = b.date ? new Date(b.date).getTime() : 0;
+      return da - db;
+    });
+
+    const lines = [
+      `"SEYA BOOKS - Profit & Loss Statement (EÜR)"`,
+      `"Fiscal Period","Year 2026"`,
+      `"Generated Date","${new Date().toISOString().split('T')[0]}"`,
+      `"Tax Exemption Status","${this.settings.isKleinunternehmer ? '§ 19 UStG Kleinunternehmer' : 'Standard 19% MwSt'}"`,
+      `""`,
+      `"P&L SUMMARY (EUR)"`,
+      `"Operating Revenue (Net)","${(totals.totalIncomeNet || 0).toFixed(2)}"`,
+      `"Operating Deductible Expenses","${(totals.totalDeductibleExpense || 0).toFixed(2)}"`,
+      `"Net Business Profit (EÜR Zeile 60)","${(totals.netBusinessProfit || 0).toFixed(2)}"`,
+      `"Profit Margin","${totals.totalIncomeNet > 0 ? Math.round(((totals.netBusinessProfit || 0) / totals.totalIncomeNet) * 100) : 0}%"`,
+      `""`,
+      `"ITEMIZED TRANSACTIONS (${sorted.length} Entries)"`,
+      [
+        'Date',
+        'Type',
+        'Amount Gross (EUR)',
+        'VAT Rate (%)',
+        'Deductible Amount (EUR)',
+        'Description',
+        'Category',
+        'Client / Brand',
+        'Account'
+      ].join(',')
+    ];
+
+    sorted.forEach(t => {
+      const isInc = t.type === 'income';
+      const cat = getCategoryById(t.category);
+      const catLabel = t.categoryName || cat.shortName || t.category;
+      const amt = Number(t.amount || 0);
+      const vatRate = Number(t.vatRate || 0);
+      const net = vatRate > 0 ? amt / (1 + vatRate / 100) : amt;
+      const deductiblePercent = isInc ? 100 : (t.taxDeductiblePercent ?? cat.deductiblePercent ?? 100);
+      const deductibleAmt = isInc ? net : (net * (deductiblePercent / 100));
+
+      const cleanDesc = (t.description || '').replace(/"/g, '""');
+      const cleanBrand = (t.businessName || t.clientName || '').replace(/"/g, '""');
+      const cleanBank = (t.bankName || 'Business Account').replace(/"/g, '""');
+
+      lines.push([
+        t.date || '',
+        isInc ? 'INCOME' : 'EXPENSE',
+        amt.toFixed(2),
+        vatRate,
+        deductibleAmt.toFixed(2),
+        `"${cleanDesc}"`,
+        `"${catLabel}"`,
+        `"${cleanBrand}"`,
+        `"${cleanBank}"`
+      ].join(','));
+    });
+
+    const csvContent = lines.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Seya_Books_Profit_Loss_Statement_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -659,7 +772,7 @@ class SeyaBooksApp {
             netProfit: euerSummary.totals.netBusinessProfit,
             taxReserve: taxAssessment.totalTaxReserve,
             isKleinunternehmer: this.settings.isKleinunternehmer
-          }, this.brands);
+          }, this.brands, this.transactions, this.timesheets);
           this.aiAuditData = freshAudit;
         } catch (err) {
           console.error('Audit generation error:', err);
@@ -1068,7 +1181,7 @@ class SeyaBooksApp {
       };
     });
 
-    // 11. P&L PDF
+    // 11. P&L PDF & CSV Downloads
     const btnExportPnlPdf = document.getElementById('btn-export-pnl-pdf');
     if (btnExportPnlPdf) {
       btnExportPnlPdf.onclick = () => {
@@ -1082,6 +1195,24 @@ class SeyaBooksApp {
           taxYear: '2026',
           isKleinunternehmer: this.settings.isKleinunternehmer !== false
         });
+      };
+    }
+
+    const btnDownloadPnlCsv = document.getElementById('btn-download-pnl-csv');
+    if (btnDownloadPnlCsv) {
+      btnDownloadPnlCsv.onclick = () => {
+        this.downloadPnlCsv();
+      };
+    }
+
+    const btnPnlAddFirstTx = document.getElementById('btn-pnl-add-first-tx');
+    if (btnPnlAddFirstTx) {
+      btnPnlAddFirstTx.onclick = () => {
+        this.txModalMode = 'create';
+        this.txModalType = 'expense';
+        this.editingTransaction = null;
+        this.activeModal = 'transaction';
+        this.render();
       };
     }
 
@@ -1348,12 +1479,39 @@ class SeyaBooksApp {
       };
     }
 
-    // 14. Transaction Modal Submit
+    // 14. Transaction Modal Submit & Custom Category Handling
     const txTypeIncomeBtn = document.getElementById('tx-type-income-btn');
     const txTypeExpenseBtn = document.getElementById('tx-type-expense-btn');
     if (txTypeIncomeBtn && txTypeExpenseBtn) {
       txTypeIncomeBtn.onclick = () => { this.txModalType = 'income'; this.render(); };
       txTypeExpenseBtn.onclick = () => { this.txModalType = 'expense'; this.render(); };
+    }
+
+    const catSelect = document.getElementById('tx-category');
+    const customCatBox = document.getElementById('tx-custom-cat-box');
+    const customCatInput = document.getElementById('tx-custom-category');
+    const btnToggleCustomCat = document.getElementById('btn-toggle-custom-category');
+
+    if (catSelect && customCatBox) {
+      catSelect.onchange = () => {
+        if (catSelect.value === '__custom__') {
+          customCatBox.style.display = 'block';
+          customCatInput?.focus();
+        } else {
+          customCatBox.style.display = 'none';
+        }
+      };
+    }
+
+    if (btnToggleCustomCat && customCatBox && catSelect) {
+      btnToggleCustomCat.onclick = () => {
+        const isHidden = customCatBox.style.display === 'none';
+        customCatBox.style.display = isHidden ? 'block' : 'none';
+        if (isHidden) {
+          catSelect.value = '__custom__';
+          customCatInput?.focus();
+        }
+      };
     }
 
     const txForm = document.getElementById('tx-form');
@@ -1364,14 +1522,37 @@ class SeyaBooksApp {
         const desc = document.getElementById('tx-desc').value.trim();
         const date = document.getElementById('tx-date').value;
         const vatRate = parseFloat(document.getElementById('tx-vat').value) || 0;
-        const cat = document.getElementById('tx-category').value;
         const bankSelect = document.getElementById('tx-bank');
-        const bankId = bankSelect ? bankSelect.value : 'bank_n26';
+        const bankId = bankSelect ? bankSelect.value : 'bank_main';
         const bankName = bankSelect ? bankSelect.options[bankSelect.selectedIndex].text : 'Business Checking';
         const clientSelect = document.getElementById('tx-client');
         const clientId = clientSelect ? clientSelect.value : null;
         const clientName = clientSelect && clientSelect.value ? clientSelect.options[clientSelect.selectedIndex].text.split('(')[0].trim() : null;
-        const taxDeductiblePercent = this.txModalType === 'expense' && cat === 'cat_meals' ? 70 : 100;
+
+        // Custom category detection
+        const rawCatValue = catSelect ? catSelect.value : 'cat_other_expense';
+        const customCatText = customCatInput ? customCatInput.value.trim() : '';
+
+        let finalCategory = rawCatValue;
+        let finalCategoryName = '';
+
+        if (rawCatValue === '__custom__' && customCatText) {
+          finalCategory = 'cat_' + customCatText.toLowerCase().replace(/[^a-z0-9]/g, '_');
+          finalCategoryName = customCatText;
+          if (!this.customCategories.includes(customCatText)) {
+            this.customCategories.push(customCatText);
+            localStorage.setItem('seya_custom_categories', JSON.stringify(this.customCategories));
+          }
+        } else if (customCatText && rawCatValue === '__custom__') {
+          finalCategory = 'cat_other_expense';
+          finalCategoryName = customCatText;
+        } else if (catSelect && catSelect.selectedIndex >= 0) {
+          finalCategory = rawCatValue;
+          const opt = catSelect.options[catSelect.selectedIndex];
+          finalCategoryName = opt ? opt.text.trim() : rawCatValue;
+        }
+
+        const taxDeductiblePercent = this.txModalType === 'expense' && finalCategory === 'cat_meals' ? 70 : 100;
 
         const newTx = {
           id: this.editingTransaction ? this.editingTransaction.id : 'tx_' + Date.now(),
@@ -1379,7 +1560,8 @@ class SeyaBooksApp {
           date,
           amount: amt,
           vatRate,
-          category: cat,
+          category: finalCategory,
+          categoryName: finalCategoryName,
           bankId,
           bankName,
           clientId,
@@ -1401,6 +1583,21 @@ class SeyaBooksApp {
         this.activeModal = null;
         this.editingTransaction = null;
         this.render();
+      };
+    }
+
+    // Delete Current Transaction from Modal
+    const btnDeleteCurrentTx = document.getElementById('btn-delete-current-tx');
+    if (btnDeleteCurrentTx && this.editingTransaction) {
+      btnDeleteCurrentTx.onclick = async () => {
+        if (confirm('Are you sure you want to delete this transaction?')) {
+          const id = this.editingTransaction.id;
+          await deleteFromStore('transactions', id);
+          this.transactions = this.transactions.filter(t => t.id !== id);
+          this.activeModal = null;
+          this.editingTransaction = null;
+          this.render();
+        }
       };
     }
 
@@ -1441,17 +1638,42 @@ class SeyaBooksApp {
       };
     }
 
-    // Delete Bank / Pocket Buttons
+    // Delete Bank / Pocket Buttons (SetupView & SheetsView)
     document.querySelectorAll('.delete-bank-btn').forEach(btn => {
-      btn.onclick = async () => {
+      btn.onclick = async (e) => {
+        e.stopPropagation();
         const id = btn.getAttribute('data-id');
-        if (confirm('Delete this bank account or pocket?')) {
+        const bank = this.banks.find(b => b.id === id);
+        const bankName = bank ? bank.name : 'this bank account';
+        if (confirm(`Are you sure you want to delete "${bankName}"?`)) {
           await deleteFromStore('banks', id);
           this.banks = this.banks.filter(b => b.id !== id);
+          if (this.settings.defaultBankId === id) {
+            this.settings.defaultBankId = this.banks[0]?.id || '';
+            await saveToStore('settings', { key: 'defaultBankId', value: this.settings.defaultBankId });
+          }
           this.render();
         }
       };
     });
+
+    // Quick Connect Groq button in AI Drawer
+    const quickGroqKeyBtn = document.getElementById('quick-groq-key-btn');
+    if (quickGroqKeyBtn) {
+      quickGroqKeyBtn.onclick = () => {
+        const key = prompt('Enter your Groq API Key (starts with gsk_):');
+        if (key && key.trim()) {
+          this.settings.groqApiKey = key.trim();
+          this.groqService.setApiKey(key.trim());
+          saveToStore('settings', { key: 'groqApiKey', value: key.trim() });
+          this.aiMessages.push({
+            role: 'assistant',
+            content: '🎉 **Groq API Key successfully connected!** You can now converse freely on any topic and issue autonomous commands.'
+          });
+          this.render();
+        }
+      };
+    }
 
     // 15. Manual Timesheet Form Submit
     const tsForm = document.getElementById('timesheet-form');
@@ -1593,7 +1815,20 @@ class SeyaBooksApp {
         this.render();
       },
       exportTaxCsv: () => {
-        this.downloadCleanTaxCsv();
+        this.downloadCleanTaxCSV();
+      },
+      downloadPnlCsv: () => {
+        this.downloadPnlCsv();
+      },
+      updateSettings: async (newSettings) => {
+        Object.assign(this.settings, newSettings);
+        for (const [k, v] of Object.entries(newSettings)) {
+          await saveToStore('settings', { key: k, value: v });
+        }
+        if (newSettings.groqApiKey) {
+          this.groqService.setApiKey(newSettings.groqApiKey);
+        }
+        this.render();
       },
       switchTab: (tabName) => {
         this.activeTab = tabName;
@@ -1602,7 +1837,7 @@ class SeyaBooksApp {
     };
 
     try {
-      const result = await this.agentEngine.processUserPrompt(promptText, appState, appActions);
+      const result = await this.agentEngine.processUserPrompt(promptText, appState, appActions, this.aiMessages);
       this.aiMessages.push({
         role: 'assistant',
         content: result.response,

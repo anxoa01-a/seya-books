@@ -86,6 +86,6 @@ export const INITIAL_SETTINGS = {
   hebesatz: 410,
   currency: 'EUR',
   defaultBankId: 'bank_main',
-  groqApiKey: '',
-  groqModel: 'llama-3.3-70b-versatile'
+  groqApiKey: import.meta.env?.VITE_GROQ_API_KEY || '',
+  groqModel: 'qwen/qwen3.8-27b'
 };

@@ -1,38 +1,55 @@
 /* ==========================================================================
-   SEYA BOOKS - Monochrome Black & White with Reflective Chrome Gradients & Micro-Animations
-   Ultra-precision Swiss typography, reflective titanium sheen, luminous glass edges.
+   SEYA BOOKS - Pleo.io Inspired Fintech Design System
+   Iconic Pleo Coral (#FF334B), deep warm slate carbon, crisp cards, vibrant accents.
    ========================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 :root {
-  /* Strict Monochrome Base */
-  --bg-canvas: #000000;
-  --bg-surface: #0a0a0a;
-  --bg-card: #111111;
-  --bg-card-hover: #171717;
-  --bg-glass: rgba(10, 10, 10, 0.88);
-  --bg-input: #141414;
+  /* Pleo.io Brand Signature Palette */
+  --pleo-coral: #FF334B;
+  --pleo-coral-hover: #E6223B;
+  --pleo-coral-active: #CE1B32;
+  --pleo-coral-light: rgba(255, 51, 75, 0.12);
+  --pleo-coral-subtle: rgba(255, 51, 75, 0.06);
+  --pleo-coral-border: rgba(255, 51, 75, 0.32);
+  --pleo-coral-glow: 0 4px 22px rgba(255, 51, 75, 0.38);
+
+  /* Status Colors */
+  --color-income: #10B981;
+  --color-income-light: rgba(16, 185, 129, 0.12);
+  --color-expense: #FF334B;
+  --color-expense-light: rgba(255, 51, 75, 0.12);
+  --color-tax: #6366F1;
+  --color-tax-light: rgba(99, 102, 241, 0.12);
+
+  /* Pleo Dark Carbon Base */
+  --bg-canvas: #0c0e14;
+  --bg-surface: #121520;
+  --bg-card: #171b28;
+  --bg-card-hover: #1e2333;
+  --bg-glass: rgba(18, 21, 32, 0.90);
+  --bg-input: #121522;
   --bg-subtle: rgba(255, 255, 255, 0.05);
 
-  /* Reflective Chrome / Titanium Gradients (Pure Silver / White Shimmer) */
-  --grad-reflective: linear-gradient(135deg, #ffffff 0%, #a1a1aa 50%, #ffffff 100%);
-  --grad-chrome-border: linear-gradient(135deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.25) 100%);
-  --grad-shimmer: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.12) 50%, transparent 100%);
-  --grad-card-sheen: radial-gradient(800px circle at top left, rgba(255, 255, 255, 0.04) 0%, transparent 60%);
+  /* Reflective & Pleo Accents */
+  --grad-reflective: linear-gradient(135deg, #FF334B 0%, #FF6E80 100%);
+  --grad-chrome-border: linear-gradient(135deg, rgba(255, 51, 75, 0.4) 0%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 51, 75, 0.3) 100%);
+  --grad-shimmer: linear-gradient(90deg, transparent 0%, rgba(255, 51, 75, 0.14) 50%, transparent 100%);
+  --grad-card-sheen: radial-gradient(800px circle at top left, rgba(255, 51, 75, 0.04) 0%, transparent 60%);
 
   /* Borders */
-  --border-subtle: rgba(255, 255, 255, 0.10);
-  --border-medium: rgba(255, 255, 255, 0.22);
-  --border-strong: rgba(255, 255, 255, 0.45);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-medium: rgba(255, 255, 255, 0.16);
+  --border-strong: rgba(255, 255, 255, 0.35);
   --border-white: #ffffff;
 
   /* Typography */
   --text-primary: #ffffff;
-  --text-secondary: #a1a1aa;
-  --text-muted: #71717a;
-  --text-dim: #52525b;
-  --text-inverse: #000000;
+  --text-secondary: #9ea5b6;
+  --text-muted: #6e768a;
+  --text-dim: #4f5669;
+  --text-inverse: #ffffff;
 
   /* Fonts */
   --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -41,48 +58,48 @@
   /* Layout */
   --header-height: 64px;
   --mob-nav-height: 68px;
-  --radius-xs: 6px;
-  --radius-sm: 10px;
-  --radius-md: 14px;
-  --radius-lg: 18px;
+  --radius-xs: 7px;
+  --radius-sm: 11px;
+  --radius-md: 15px;
+  --radius-lg: 20px;
   --radius-full: 9999px;
 
   /* Shadows & Glows */
-  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.8), 0 0 0 1px var(--border-subtle);
-  --shadow-glow: 0 0 25px rgba(255, 255, 255, 0.08);
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--border-subtle);
+  --shadow-glow: 0 0 25px rgba(255, 51, 75, 0.12);
   --shadow-modal: 0 25px 60px rgba(0, 0, 0, 0.95), 0 0 0 1px var(--border-medium);
-  --transition: 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition: 180ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Light Theme Overrides (Reflective Clean White) */
+/* Light Theme Overrides (Pleo Clean Warm Stone) */
 [data-theme="light"] {
-  --bg-canvas: #ffffff;
-  --bg-surface: #f4f4f5;
+  --bg-canvas: #f7f8fb;
+  --bg-surface: #edf0f5;
   --bg-card: #ffffff;
-  --bg-card-hover: #f9f9fa;
-  --bg-glass: rgba(255, 255, 255, 0.92);
-  --bg-input: #f4f4f5;
+  --bg-card-hover: #fafbfe;
+  --bg-glass: rgba(255, 255, 255, 0.94);
+  --bg-input: #edf0f5;
   --bg-subtle: rgba(0, 0, 0, 0.04);
 
-  --grad-reflective: linear-gradient(135deg, #000000 0%, #52525b 50%, #000000 100%);
-  --grad-chrome-border: linear-gradient(135deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0.08) 50%, rgba(0, 0, 0, 0.25) 100%);
-  --grad-shimmer: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.08) 50%, transparent 100%);
-  --grad-card-sheen: radial-gradient(800px circle at top left, rgba(0, 0, 0, 0.02) 0%, transparent 60%);
+  --grad-reflective: linear-gradient(135deg, #FF334B 0%, #FF6073 100%);
+  --grad-chrome-border: linear-gradient(135deg, rgba(255, 51, 75, 0.35) 0%, rgba(0, 0, 0, 0.08) 50%, rgba(255, 51, 75, 0.25) 100%);
+  --grad-shimmer: linear-gradient(90deg, transparent 0%, rgba(255, 51, 75, 0.1) 50%, transparent 100%);
+  --grad-card-sheen: radial-gradient(800px circle at top left, rgba(255, 51, 75, 0.03) 0%, transparent 60%);
 
-  --border-subtle: rgba(0, 0, 0, 0.10);
-  --border-medium: rgba(0, 0, 0, 0.22);
-  --border-strong: rgba(0, 0, 0, 0.45);
-  --border-white: #000000;
+  --border-subtle: #e5e8ef;
+  --border-medium: #d4d8e3;
+  --border-strong: #9ca3af;
+  --border-white: #11141e;
 
-  --text-primary: #000000;
-  --text-secondary: #52525b;
-  --text-muted: #71717a;
-  --text-dim: #a1a1aa;
+  --text-primary: #11141e;
+  --text-secondary: #51596c;
+  --text-muted: #798296;
+  --text-dim: #a1a8b8;
   --text-inverse: #ffffff;
 
-  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.06), 0 0 0 1px var(--border-subtle);
-  --shadow-glow: 0 0 25px rgba(0, 0, 0, 0.04);
-  --shadow-modal: 0 25px 60px rgba(0, 0, 0, 0.18), 0 0 0 1px var(--border-medium);
+  --shadow-card: 0 4px 20px rgba(18, 22, 33, 0.05), 0 0 0 1px var(--border-subtle);
+  --shadow-glow: 0 0 25px rgba(255, 51, 75, 0.08);
+  --shadow-modal: 0 25px 60px rgba(18, 22, 33, 0.16), 0 0 0 1px var(--border-medium);
 }
 
 /* Base Reset & Smooth Typography */
@@ -114,7 +131,7 @@ body::before {
   transform: translateX(-50%);
   width: 90vw;
   height: 50vh;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.035) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(255, 51, 75, 0.08) 0%, transparent 70%);
   pointer-events: none;
   z-index: 0;
   animation: auraFloat 8s infinite ease-in-out alternate;
@@ -159,12 +176,12 @@ body::before {
   transform: scale(0.97);
 }
 
-/* Reflective Primary Button */
+/* Pleo Vibrant Primary Button */
 .btn-primary {
-  background: var(--text-primary);
-  color: var(--text-inverse);
-  border-color: var(--text-primary);
-  box-shadow: 0 2px 12px rgba(255, 255, 255, 0.15);
+  background: var(--pleo-coral);
+  color: #ffffff;
+  border-color: var(--pleo-coral);
+  box-shadow: 0 2px 14px rgba(255, 51, 75, 0.35);
 }
 
 .btn-primary::after {
@@ -174,14 +191,21 @@ body::before {
   left: -100%;
   width: 50%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
   transform: skewX(-20deg);
   transition: left 0.6s ease;
 }
 
 .btn-primary:hover {
-  box-shadow: 0 4px 18px rgba(255, 255, 255, 0.25);
+  background: var(--pleo-coral-hover);
+  border-color: var(--pleo-coral-hover);
+  box-shadow: 0 4px 20px rgba(255, 51, 75, 0.48);
   transform: translateY(-1px);
+}
+
+.btn-primary:active {
+  background: var(--pleo-coral-active);
+  transform: scale(0.98);
 }
 
 .btn-primary:hover::after {
@@ -197,7 +221,7 @@ body::before {
 }
 
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
   border-color: var(--border-strong);
   transform: translateY(-1px);
 }
@@ -229,7 +253,7 @@ body::before {
 }
 
 /* ==========================================================================
-   REFLECTIVE CHROME BADGES & PILLS
+   PLEO FINTECH BADGES & PILLS
    ========================================================================== */
 .badge {
   display: inline-flex;
@@ -250,8 +274,8 @@ body::before {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background-color: var(--text-primary);
-  box-shadow: 0 0 8px var(--text-primary);
+  background-color: var(--pleo-coral);
+  box-shadow: 0 0 8px var(--pleo-coral);
 }
 
 .badge-outline {
@@ -261,16 +285,16 @@ body::before {
 }
 
 .badge-filled {
-  background: var(--text-primary);
-  color: var(--text-inverse);
-  border-color: var(--text-primary);
+  background: var(--pleo-coral);
+  color: #ffffff;
+  border-color: var(--pleo-coral);
 }
 
 .badge-reflective {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.05));
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: #ffffff;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+  background: var(--pleo-coral-light);
+  border: 1px solid var(--pleo-coral-border);
+  color: var(--pleo-coral);
+  box-shadow: 0 0 12px rgba(255, 51, 75, 0.15);
 }
 
 /* ==========================================================================
@@ -364,15 +388,15 @@ body::before {
   width: 44px;
   height: 44px;
   border-radius: var(--radius-sm);
-  background: var(--text-primary);
-  color: var(--text-inverse);
+  background: linear-gradient(135deg, #FF334B 0%, #FF6579 100%);
+  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 800;
   font-family: var(--font-mono);
   font-size: 16px;
-  box-shadow: 0 0 18px rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 18px rgba(255, 51, 75, 0.35);
   flex-shrink: 0;
 }
 
@@ -488,8 +512,8 @@ body::before {
   width: 34px;
   height: 34px;
   border-radius: var(--radius-xs);
-  background: var(--text-primary);
-  color: var(--text-inverse);
+  background: linear-gradient(135deg, #FF334B 0%, #FF6579 100%);
+  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -497,7 +521,7 @@ body::before {
   font-weight: 800;
   font-size: 17px;
   letter-spacing: -0.05em;
-  box-shadow: 0 0 14px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 14px rgba(255, 51, 75, 0.4);
   transition: transform var(--transition);
 }
 
@@ -549,13 +573,13 @@ body::before {
 
 .nav-link:hover {
   color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 51, 75, 0.08);
 }
 
 .nav-link.active {
-  background: var(--text-primary);
-  color: var(--text-inverse);
-  box-shadow: 0 2px 10px rgba(255, 255, 255, 0.15);
+  background: var(--pleo-coral);
+  color: #ffffff;
+  box-shadow: 0 2px 12px rgba(255, 51, 75, 0.35);
 }
 
 .header-right {
@@ -664,8 +688,8 @@ body::before {
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  background: var(--text-primary);
-  color: var(--text-inverse);
+  background: var(--pleo-coral);
+  color: #ffffff;
   border: 3px solid var(--bg-canvas);
   display: flex;
   align-items: center;
@@ -674,7 +698,7 @@ body::before {
   transform: translateY(-14px);
   transition: all var(--transition);
   flex-shrink: 0;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.7), 0 0 15px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.7), 0 0 18px rgba(255, 51, 75, 0.4);
 }
 
 .mob-fab-btn:active {
@@ -985,14 +1009,15 @@ body::before {
   width: 32px;
   height: 32px;
   border-radius: var(--radius-xs);
-  background-color: var(--text-primary);
-  color: var(--text-inverse);
+  background: linear-gradient(135deg, #FF334B 0%, #FF6579 100%);
+  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-mono);
   font-weight: 700;
   font-size: 13px;
+  box-shadow: 0 2px 10px rgba(255, 51, 75, 0.35);
 }
 
 .ai-chat-body {
@@ -1023,9 +1048,9 @@ body::before {
 }
 
 .ai-chip:hover {
-  background: var(--text-primary);
-  color: var(--text-inverse);
-  border-color: var(--text-primary);
+  background: var(--pleo-coral-light);
+  color: var(--pleo-coral);
+  border-color: var(--pleo-coral);
 }
 
 .ai-msg {
@@ -1143,8 +1168,8 @@ body::before {
 }
 
 .input:focus, .select:focus, .textarea:focus {
-  border-color: var(--text-primary);
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+  border-color: var(--pleo-coral);
+  box-shadow: 0 0 0 3px rgba(255, 51, 75, 0.18);
 }
 
 .text-mono {
@@ -1261,4 +1286,9 @@ body::before {
   background: var(--text-primary);
   color: var(--text-inverse);
   box-shadow: 0 2px 8px rgba(255, 255, 255, 0.15);
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }

@@ -7,6 +7,7 @@ export function renderAiChatDrawer({
   isOpen = false,
   messages = [],
   financialContext = {},
+  hasGroqKey = false,
   isThinking = false
 }) {
   const formatMarkdown = (content) => {
@@ -34,8 +35,21 @@ export function renderAiChatDrawer({
         <div class="ai-drawer-title">
           <div class="ai-symbol-badge">AI</div>
           <div>
-            <div style="font-weight: 700; font-size: 14.5px; color: var(--text-primary);">Seya Financial AI</div>
-            <div style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);">Groq LPU • Live Ledger Memory</div>
+            <div style="font-weight: 700; font-size: 14.5px; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+              <span>Seya Copilot Agent</span>
+              ${hasGroqKey ? `
+                <span class="badge" style="font-size: 9.5px; background: rgba(16, 185, 129, 0.12); color: #10B981; border: 1px solid rgba(16, 185, 129, 0.3);">
+                  ● Groq Live
+                </span>
+              ` : `
+                <span class="badge badge-reflective" id="quick-groq-key-btn" style="font-size: 9.5px; cursor: pointer;" title="Connect Groq API Key">
+                  + Add Groq Key
+                </span>
+              `}
+            </div>
+            <div style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);">
+              ${hasGroqKey ? 'Groq LPU Active • Can Answer Anything & Execute Actions' : 'Enter Groq key in Setup or chat to unlock full AI'}
+            </div>
           </div>
         </div>
         <div style="display: flex; gap: 6px;">

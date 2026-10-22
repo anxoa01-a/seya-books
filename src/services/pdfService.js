@@ -103,7 +103,14 @@ export function generateStatementPDF({
   doc.setTextColor(15, 23, 42);
   doc.text('Transaction Ledger', 14, y);
 
-  const tableRows = transactions.map(t => {
+  // Sort transactions chronologically by transaction date
+  const sortedTransactions = [...transactions].sort((a, b) => {
+    const da = a.date ? new Date(a.date).getTime() : 0;
+    const db = b.date ? new Date(b.date).getTime() : 0;
+    return da - db;
+  });
+
+  const tableRows = sortedTransactions.map(t => {
     const cat = getCategoryById(t.category);
     const isIncome = t.type === 'income';
     const amountStr = `${isIncome ? '+' : '-'}€${Number(t.amount || 0).toLocaleString('de-DE', { minimumFractionDigits: 2 })}`;

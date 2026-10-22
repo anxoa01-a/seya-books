@@ -16,16 +16,37 @@ export class SeyaFinancialAgent {
   /**
    * Main entry point for user prompts
    */
-  async processUserPrompt(promptText, appState, appActions) {
+  /**
+   * Main entry point for user prompts
+   */
+  async processUserPrompt(promptText, appState, appActions, chatHistory = []) {
     const trimmed = (promptText || '').trim();
     if (!trimmed) {
       return {
-        response: 'Hi! I am your Seya Financial Copilot. You can ask me questions about your ledger or give me commands like: \n\n• *"Please create an expense of 20 euro today for Google Play"*\n• *"Add €1,500 income from Seya Pay"*\n• *"Log 4 hours for Seya AI at 150/hr"*\n• *"Which brand earned the most?"*\n• *"Download tax CSV"*',
+        response: 'Hi! I am your Seya Autonomous Financial Copilot powered by Groq. You can ask me any question or command tasks directly: \n\n• *"Please create an expense of 20 euro today for Google Play"*\n• *"Add €1,500 income from Seya Pay"*\n• *"Log 4 hours for Seya AI at 150/hr"*\n• *"Which brand earned the most?"*\n• *"Download tax CSV"*\n• *"How does § 19 UStG work in Germany?"*',
         actionExecuted: null
       };
     }
 
-    // 1. Try local deterministic agent intent parser first
+    // 0. Check if user is supplying/updating a Groq API key in chat (e.g. "gsk_...")
+    const groqKeyMatch = trimmed.match(/\b(gsk_[a-zA-Z0-9_-]{20,})\b/);
+    if (groqKeyMatch) {
+      const extractedKey = groqKeyMatch[1];
+      this.groqService.setApiKey(extractedKey);
+      if (appActions.updateSettings) {
+        await appActions.updateSettings({ groqApiKey: extractedKey });
+      }
+      return {
+        response: `🎉 **Groq API Key Successfully Connected!**\n\nI am now running live on ultra-fast Groq LPU models. You can ask me **anything** (tax deductions, EÜR rules, programming, business strategies, calculations, or general queries) and tell me to manage your books autonomously!`,
+        actionExecuted: {
+          type: 'update_settings',
+          title: 'Connected Groq API Key',
+          details: `Active model: ${this.groqService.getModel()}`
+        }
+      };
+    }
+
+    // 1. Try local deterministic agent intent parser for instantaneous 0ms actions
     const localResult = this.evaluateLocalIntent(trimmed, appState, appActions);
     if (localResult && localResult.handled) {
       return {
@@ -34,18 +55,19 @@ export class SeyaFinancialAgent {
       };
     }
 
-    // 2. If Groq API key is present, attempt LLM reasoning with full ledger context
+    // 2. If Groq API key is present, execute LLM agent reasoning with full conversational memory
     if (this.groqService && this.groqService.apiKey) {
       try {
-        const llmResult = await this.askGroqWithContext(trimmed, appState);
-        if (llmResult) {
-          return {
-            response: llmResult,
-            actionExecuted: null
-          };
+        const groqResult = await this.askGroqWithContext(trimmed, appState, appActions, chatHistory);
+        if (groqResult) {
+          return groqResult;
         }
       } catch (err) {
-        console.warn('Groq advisory fallback to local agent:', err);
+        console.error('Groq agent execution error:', err);
+        return {
+          response: `⚠️ **Groq API Error:** ${err.message || 'Unable to connect to Groq LPU.'}\n\nPlease verify your API key in **Setup & Banks** (or paste your \`gsk_...\` key here directly in chat).`,
+          actionExecuted: null
+        };
       }
     }
 
@@ -587,41 +609,222 @@ export class SeyaFinancialAgent {
     return text;
   }
 
-  async askGroqWithContext(prompt, appState) {
-    const { euerSummary, taxAssessment, brands = [] } = appState;
+  async askGroqWithContext(prompt, appState, appActions, chatHistory = []) {
+    const { euerSummary, taxAssessment, brands = [], transactions = [], banks = [], settings = {} } = appState;
     const totals = euerSummary?.totals || {};
+    const defaultBank = banks[0] || { id: 'bank_main', name: 'N26 Business Account' };
 
-    const systemPrompt = `You are "Seya Copilot", a crisp personal financial assistant for Seya Technologies in Germany.
-LIVE DATA:
-- Net Revenue: €${(totals.totalIncomeNet || 0).toFixed(2)}
-- Expenses: €${(totals.totalDeductibleExpense || 0).toFixed(2)}
-- Net Profit: €${(totals.netBusinessProfit || 0).toFixed(2)}
-- Tax Reserve: €${Math.round(taxAssessment?.totalTaxReserve || 0)}
-- Brands: ${brands.map(b => b.name).join(', ')}
+    const systemPrompt = `You are "Seya AI", a personal financial copilot & autonomous business agent for Seya Technologies in Germany.
+You are running live on high-speed Groq LPUs.
+You can converse on ANY topic with full intelligence—general knowledge, tax deductions, German accounting (§ 19 UStG Kleinunternehmer, EStG, Anlage EÜR, AfA, Bewirtungsbeleg 70/30, EÜR Zeilen), programming, business strategy, math, or whatever the user prompts.
 
-Answer conversationally in plain, concise English with clean markdown bullet points. No filler.`;
+LIVE FINANCIAL LEDGER CONTEXT:
+- Net Revenue: €${(totals.totalIncomeNet || 0).toLocaleString('de-DE', { minimumFractionDigits: 2 })}
+- Deductible Expenses: €${(totals.totalDeductibleExpense || 0).toLocaleString('de-DE', { minimumFractionDigits: 2 })}
+- Net Business Profit: €${(totals.netBusinessProfit || 0).toLocaleString('de-DE', { minimumFractionDigits: 2 })}
+- Estimated Tax Reserve: €${Math.round(taxAssessment?.totalTaxReserve || 0).toLocaleString('de-DE')}
+- Tax Status: ${settings.isKleinunternehmer ? '§ 19 UStG Kleinunternehmer (VAT exempt up to 25.000 €)' : 'Standard 19% MwSt'}
+- Connected Bank Accounts: ${banks.map(b => b.name).join(', ') || 'N26 Business Account'}
+- Active Brands: ${brands.map(b => b.name).join(', ') || 'Seya Pay, Seya AI'}
+- Total Real Transactions: ${transactions.length} entries
 
-    return await this.groqService.callGroq([
+AUTONOMOUS ACTIONS:
+If the user's intent is to take an action (add an expense, add income, log hours, download CSV, navigate tabs, create a brand), confirm clearly in friendly markdown AND output an ACTION directive on its own line at the end in this exact JSON format:
+ACTION: {"type": "add_expense", "amount": 20, "description": "Google Play", "category": "Software & Tools", "date": "${new Date().toISOString().split('T')[0]}"}
+ACTION: {"type": "add_income", "amount": 1500, "brand": "Seya Pay", "description": "Client Payment", "date": "${new Date().toISOString().split('T')[0]}"}
+ACTION: {"type": "log_timesheet", "hours": 4, "brand": "Seya AI", "rate": 150, "project": "Prompt Engineering"}
+ACTION: {"type": "export_csv"}
+ACTION: {"type": "navigate", "tab": "pnl" | "dashboard" | "brands" | "sheets" | "setup"}
+ACTION: {"type": "create_brand", "name": "Brand Name"}
+
+RULES:
+1. Always respond directly and intelligently to the user's specific prompt. Do NOT use static repetitive templates.
+2. If the user asks a question, explain thoroughly with crisp markdown formatting and bullet points.
+3. Only append an ACTION line if an action is explicitly intended.
+4. Keep tone professional, crisp, and helpful.`;
+
+    // Map recent chat history for multi-turn conversational context
+    const recentHistory = (chatHistory || [])
+      .slice(-10)
+      .map(m => ({
+        role: m.role === 'user' ? 'user' : 'assistant',
+        content: m.content || ''
+      }));
+
+    const messages = [
       { role: 'system', content: systemPrompt },
+      ...recentHistory,
       { role: 'user', content: prompt }
-    ], { temperature: 0.3, max_tokens: 600 });
+    ];
+
+    const rawResponse = await this.groqService.callGroq(messages, { temperature: 0.5, max_tokens: 1200 });
+
+    // Check for ACTION directive
+    const actionMatch = rawResponse.match(/ACTION:\s*(\{.*\})/i);
+    let actionExecuted = null;
+    let cleanResponse = rawResponse;
+
+    if (actionMatch) {
+      try {
+        const actionData = JSON.parse(actionMatch[1]);
+        cleanResponse = rawResponse.replace(/ACTION:\s*\{.*\}/gi, '').trim();
+
+        if (actionData.type === 'add_expense' && appActions.addTransaction) {
+          const catInfo = this.categorizeExpense(actionData.description || 'Expense');
+          const newTx = {
+            id: 'tx_' + Date.now(),
+            type: 'expense',
+            date: actionData.date || new Date().toISOString().split('T')[0],
+            amount: parseFloat(actionData.amount) || 0,
+            vatRate: 19,
+            category: catInfo.categoryId,
+            categoryName: actionData.category || catInfo.label,
+            bankId: defaultBank.id,
+            bankName: defaultBank.name,
+            description: actionData.description || 'Operating Expense',
+            taxDeductiblePercent: catInfo.taxDeductiblePercent
+          };
+          appActions.addTransaction(newTx);
+          actionExecuted = {
+            type: 'add_expense',
+            title: `Expense Added: ${newTx.description}`,
+            details: `€${newTx.amount.toFixed(2)} • ${newTx.categoryName} • ${newTx.date}`
+          };
+        } else if (actionData.type === 'add_income' && appActions.addTransaction) {
+          const brandName = actionData.brand || brands[0]?.name || 'Seya Pay';
+          const matchedBrand = brands.find(b => b.name.toLowerCase() === brandName.toLowerCase());
+          const newTx = {
+            id: 'tx_' + Date.now(),
+            type: 'income',
+            date: actionData.date || new Date().toISOString().split('T')[0],
+            amount: parseFloat(actionData.amount) || 0,
+            vatRate: settings?.isKleinunternehmer ? 0 : 19,
+            category: 'cat_client_services',
+            categoryName: 'Client Services',
+            bankId: defaultBank.id,
+            bankName: defaultBank.name,
+            clientId: matchedBrand?.id || brands[0]?.id || 'brand_seya_pay',
+            clientName: brandName,
+            businessName: brandName,
+            description: actionData.description || `Revenue: ${brandName}`,
+            taxDeductiblePercent: 100
+          };
+          appActions.addTransaction(newTx);
+          actionExecuted = {
+            type: 'add_income',
+            title: `Income Added: ${brandName}`,
+            details: `€${newTx.amount.toFixed(2)} • Client Services • ${newTx.date}`
+          };
+        } else if (actionData.type === 'log_timesheet' && appActions.addTimesheet) {
+          const brandName = actionData.brand || brands[0]?.name || 'Seya Pay';
+          const matchedBrand = brands.find(b => b.name.toLowerCase() === brandName.toLowerCase());
+          const rate = parseFloat(actionData.rate) || matchedBrand?.hourlyRate || 130;
+          const hours = parseFloat(actionData.hours) || 1;
+          const newTs = {
+            id: 'ts_' + Date.now(),
+            businessName: brandName,
+            clientName: brandName,
+            date: actionData.date || new Date().toISOString().split('T')[0],
+            hours,
+            hourlyRate: rate,
+            project: actionData.project || 'Advisory & Engineering',
+            notes: 'Logged via Groq AI Copilot Agent',
+            invoiced: false
+          };
+          appActions.addTimesheet(newTs);
+          actionExecuted = {
+            type: 'log_timesheet',
+            title: `Logged ${hours}h for ${brandName}`,
+            details: `Value: €${(hours * rate).toFixed(2)} • Ready to invoice`
+          };
+        } else if (actionData.type === 'export_csv' && appActions.exportTaxCsv) {
+          appActions.exportTaxCsv();
+          actionExecuted = {
+            type: 'export_csv',
+            title: 'Exported Clean Tax CSV',
+            details: 'Downloaded clean CSV statement'
+          };
+        } else if (actionData.type === 'navigate' && appActions.switchTab) {
+          appActions.switchTab(actionData.tab);
+          actionExecuted = {
+            type: 'navigate',
+            title: `Navigated to ${actionData.tab}`,
+            details: `Active view switched to #${actionData.tab}`
+          };
+        } else if (actionData.type === 'create_brand' && appActions.createBrand) {
+          const brandName = actionData.name || 'New Brand';
+          const newBrand = {
+            id: 'brand_' + Date.now(),
+            name: brandName,
+            company: `Seya Technologies - ${brandName}`,
+            contactPerson: 'Pritam Maharjan',
+            email: `${brandName.toLowerCase().replace(/\s+/g, '')}@seyatechnologies.com`,
+            paymentTerms: '14 Days',
+            projects: ['Software & Consulting'],
+            hourlyRate: 130
+          };
+          appActions.createBrand(newBrand);
+          actionExecuted = {
+            type: 'create_brand',
+            title: `Created Brand "${brandName}"`,
+            details: 'Registered under Seya Technologies'
+          };
+        }
+      } catch (e) {
+        console.warn('Failed to parse ACTION directive:', e);
+      }
+    }
+
+    return {
+      response: cleanResponse,
+      actionExecuted
+    };
   }
 
   generateDynamicAdvisory(prompt, appState) {
-    const { euerSummary, taxAssessment, brands = [] } = appState;
+    const { euerSummary, taxAssessment, brands = [], transactions = [] } = appState;
     const totals = euerSummary?.totals || {};
+    const p = prompt.toLowerCase();
+
+    // Contextual responses based on prompt query
+    if (p.includes('hello') || p.includes('hi') || p.includes('hey') || p.includes('guten tag')) {
+      return {
+        handled: true,
+        response: `Hello! I'm **Seya AI**, your financial and business copilot.\n\n` +
+          `• **Current Net Profit:** €${(totals.netBusinessProfit || 0).toLocaleString('de-DE', { minimumFractionDigits: 2 })}\n` +
+          `• **Active Records:** ${transactions.length} real transactions\n\n` +
+          `You can ask me anything about your finances or give commands like:\n` +
+          `• *"Add €1,500 income from Seya Pay"*\n` +
+          `• *"Create expense of €25 for AWS today"*\n` +
+          `• *"Download tax CSV"*\n\n` +
+          `💡 *Tip: Add your Groq API Key in Setup & Banks (or paste \`gsk_...\` right here) to unlock open-ended conversational reasoning!*`,
+        actionExecuted: null
+      };
+    }
+
+    if (p.includes('help') || p.includes('what can you do') || p.includes('features')) {
+      return {
+        handled: true,
+        response: `Here is what I can do for you as your autonomous copilot:\n\n` +
+          `1. **Add Transactions:** Say *"Add €1,500 income from Seya Pay"* or *"-€20 for Figma today"*.\n` +
+          `2. **Log Work Sessions:** Say *"Log 4 hours for Seya AI at 150/hr"*.\n` +
+          `3. **Export Statements:** Say *"Download tax CSV"* or *"Download P&L CSV"*.\n` +
+          `4. **Financial Analysis:** Ask *"Which brand earned the most?"*, *"What is my tax reserve?"*, or *"Check my § 19 UStG limit"*.\n` +
+          `5. **Navigation:** Say *"Open P&L"* or *"Go to Setup"*.\n\n` +
+          `🔑 Connect your **Groq API Key** to chat about anything freely!`,
+        actionExecuted: null
+      };
+    }
+
     return {
       handled: true,
-      response: `I've reviewed your request: *"${prompt}"*\n\n` +
-        `**Live Status:**\n` +
+      response: `I've received your query: **"${prompt}"**\n\n` +
+        `**Live Ledger Status:**\n` +
         `• **YTD Net Revenue:** €${(totals.totalIncomeNet || 0).toLocaleString('de-DE', { minimumFractionDigits: 2 })}\n` +
-        `• **Net Profit:** €${(totals.netBusinessProfit || 0).toLocaleString('de-DE', { minimumFractionDigits: 2 })}\n` +
-        `• **Tax Reserve:** €${Math.round(taxAssessment?.totalTaxReserve || 0).toLocaleString('de-DE')}\n` +
-        `• **Brands:** ${brands.map(b => b.name).join(', ')}\n\n` +
-        `You can tell me to do works anytime, e.g.:\n` +
-        `• *"Please create an expense of 20 euro today for Google Play"*\n` +
-        `• *"Add €1,500 income from Seya Pay"*\n` +
-        `• *"Download tax CSV"*`,
+        `• **Deductible Expenses:** €${(totals.totalDeductibleExpense || 0).toLocaleString('de-DE', { minimumFractionDigits: 2 })}\n` +
+        `• **Net Business Profit:** €${(totals.netBusinessProfit || 0).toLocaleString('de-DE', { minimumFractionDigits: 2 })}\n` +
+        `• **Estimated Tax Buffer:** €${Math.round(taxAssessment?.totalTaxReserve || 0).toLocaleString('de-DE')}\n\n` +
+        `💡 *To ask open-ended questions about anything with advanced reasoning, please add your **Groq API Key** in Setup & Banks (or simply paste your \`gsk_...\` key right here into the chat)!*`,
       actionExecuted: null
     };
   }
